@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "../components/Card";
 import { getCurrentWeather, searchCity } from "../services/openMeteo";
+import { useLocation } from "../contexts/LocationContext";
 
 type CardItem = {
   name?: string;
@@ -17,10 +18,45 @@ type CardItem = {
 };
 
 export function WeatherPage() {
-  const [q, setQ] = useState("Córdoba");
+  const { location: userLocation, loading: locationLoading } = useLocation();
+  const [q, setQ] = useState("");
   const [item, setItem] = useState<CardItem>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  async function loadByCoordinates(lat: number, lon: number) {
+    setLoading(true);
+    setError("");
+
+    try {
+      const { current, humidity, chanceOfRain, formattedDateTime, location } = await getCurrentWeather(
+        lat,
+        lon
+      );
+
+      if (!current) {
+        setItem({});
+        setError("No pude obtener clima actual.");
+        return;
+      }
+
+      setItem({
+        name: location?.name,
+        country: location?.country,
+        temperature: Math.round(current.temperature),
+        description: current.conditionText || "Condición",
+        condition: current.conditionText || "Condición",
+        wind: Math.round(current.windspeed),
+        humidity: humidity !== undefined ? Math.round(humidity) : undefined,
+        chanceOfRain: chanceOfRain !== undefined ? chanceOfRain : undefined,
+        formattedDateTime: formattedDateTime,
+      });
+    } catch {
+      setError("Error consultando WeatherAPI.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function load(cityName: string) {
     setLoading(true);
@@ -66,8 +102,16 @@ export function WeatherPage() {
   }
 
   useEffect(() => {
-    load(q);
-  }, []);
+    if (!locationLoading) {
+      if (userLocation) {
+        loadByCoordinates(userLocation.latitude, userLocation.longitude);
+        setQ(userLocation.name);
+      } else {
+        load("Córdoba");
+        setQ("Córdoba");
+      }
+    }
+  }, [userLocation, locationLoading]);
 
   return (
     <div>

@@ -61,6 +61,40 @@ export async function searchCity(name: string): Promise<GeoResult[]> {
   }
 }
 
+export async function getLocationFromCoordinates(
+  lat: number,
+  lon: number
+): Promise<GeoResult | null> {
+  try {
+    const { data } = await weatherApi.get<WeatherApiForecastResponse>("/forecast.json", {
+      params: {
+        key: API_KEY,
+        q: `${lat},${lon}`,
+        days: 1,
+        lang: "es",
+      },
+    });
+
+    if (!data.location) {
+      return null;
+    }
+
+    return {
+      id: data.location.id ?? 0,
+      name: data.location.name,
+      country: data.location.country,
+      country_code: data.location.country.substring(0, 2).toUpperCase(),
+      admin1: data.location.region,
+      latitude: data.location.lat,
+      longitude: data.location.lon,
+      region: data.location.region,
+    };
+  } catch (error: any) {
+    console.error("Error en getLocationFromCoordinates:", error);
+    throw error;
+  }
+}
+
 export type CurrentWeather = {
   temperature: number;
   windspeed: number;
@@ -172,6 +206,7 @@ export async function getCurrentWeather(
   chanceOfRain?: number;
   lastUpdated?: string;
   formattedDateTime?: string;
+  location?: GeoResult;
 }> {
   try {
     const { data } = await weatherApi.get<WeatherApiForecastResponse>("/forecast.json", {
@@ -199,12 +234,24 @@ export async function getCurrentWeather(
     const chanceOfRain = data.forecast?.forecastday?.[0]?.day?.daily_chance_of_rain ?? undefined;
     const formattedDateTime = formatDateTime(data.current.last_updated);
 
+    const location: GeoResult | undefined = data.location ? {
+      id: data.location.id ?? 0,
+      name: data.location.name,
+      country: data.location.country,
+      country_code: data.location.country.substring(0, 2).toUpperCase(),
+      admin1: data.location.region,
+      latitude: data.location.lat,
+      longitude: data.location.lon,
+      region: data.location.region,
+    } : undefined;
+
     return {
       current,
       humidity: data.current.humidity,
       chanceOfRain,
       lastUpdated: data.current.last_updated,
       formattedDateTime,
+      location,
     };
   } catch (error: any) {
     console.error("Error en getCurrentWeather:", error);

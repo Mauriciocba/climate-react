@@ -1,6 +1,19 @@
 import climateLogo from '../assets/favicon-global.png'
+import { useLocation } from '../contexts/LocationContext'
 
 export function Navbar() {
+  const { location, loading, error } = useLocation()
+
+  const getLocationDisplay = () => {
+    if (loading) {
+      return "Obteniendo ubicación..."
+    }
+    if (location) {
+      return `${location.name}, ${location.country}`
+    }
+    return "Ubicación no disponible"
+  }
+
   return (
     <header className="bg-white shadow-md sticky top-0 z-50 w-full">
       <nav className="mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,6 +27,13 @@ export function Navbar() {
             <h1 className="text-xs text-gray-600 uppercase tracking-wide">
               Weather now
             </h1>
+          </div>
+          <div className="flex items-center">
+            <p className={`text-sm md:text-base ${
+              loading ? 'text-gray-400' : error ? 'text-red-500' : 'text-gray-700'
+            } font-medium`}>
+              {getLocationDisplay()}
+            </p>
           </div>
         </div>
       </nav>
